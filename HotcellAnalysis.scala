@@ -1,9 +1,11 @@
 package cse512
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.functions._
+
 import scala.collection._
 import util.control.Breaks._
 
@@ -32,6 +34,10 @@ object HotcellAnalysis {
     var newCoordinateName = Seq("x", "y", "z")
     pickupInfo = pickupInfo.toDF(newCoordinateName: _*)
     pickupInfo.show()
+
+    // converting DF to RDD
+    var pickupInfoRdd : RDD[Row] = pickupInfo.rdd
+
 
     // Define the min and max of x, y, z
     val minX = -74.50 / HotcellUtils.coordinateStep
@@ -70,11 +76,8 @@ object HotcellAnalysis {
 
     // Calculating here the global metrics "x_bar" and "s"
 
-    for (cell <- pickupInfo.collect()) {
+    for (cell <- pickupInfoRdd.collect()) {
 
-      //i += 1
-
-      //println("iteration: " + i.toString + " out of " + cells_full.length.toString)
 
       if (features.contains((cell.get(0).toString, cell.get(1).toString, cell.get(2).toString))) {
         features((cell.get(0).toString, cell.get(1).toString, cell.get(2).toString)) += 1
@@ -98,7 +101,7 @@ object HotcellAnalysis {
 
     println("Iterating over the cells")
 
-    for (cell_1 <- features.keys.toList) {
+    for (cell_1 <- features.keys) {
 
       accumulatedFeature = 0
       accumulatedWeights = 0
@@ -109,7 +112,7 @@ object HotcellAnalysis {
       neighbor = 0
 
       breakable{
-      for (cell_2 <- features.keys.toList) {
+      for (cell_2 <- features.keys) {
 
         // The next four test conditions verify if the cell is a neighbor of the analyzed cell
 
@@ -126,7 +129,7 @@ object HotcellAnalysis {
 
               neighbor += 1
 
-              if (neighbor == 26) {
+              if (neighbor == 27) {
                 break
               }
 
