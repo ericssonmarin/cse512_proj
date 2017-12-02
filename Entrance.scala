@@ -17,24 +17,27 @@ object Entrance extends App {
       .config("spark.some.config.option", "some-value").master("local[*]")
       .getOrCreate()
 
+    //spark.sparkContext.getConf.set("spark.driver.memory", "8g")
+    //spark.sparkContext.getConf.set("spark.executor.memory", "8g")
+
     paramsParser(spark, args)
 
     //print("Process Finished!!!")
 
   }
-  
+
   private def paramsParser(spark: SparkSession, args: Array[String]): Unit = {
     var paramOffset = 1
     var currentQueryParams = ""
     var currentQueryName = ""
     var currentQueryIdx = -1
 
-    val args = Array("test/output","hotzoneanalysis","src/resources/point-hotzone.csv","src/resources/zone-hotzone.csv","hotcellanalysis",
-              "src/resources/yellow_tripdata_2009-01_point.csv")
+    //val args = Array("test/output","hotzoneanalysis","src/resources/point-hotzone.csv","src/resources/zone-hotzone.csv","hotcellanalysis",
+    //  "src/resources/yellow_tripdata_2009-01_point.csv")
 
     //val args = Array("test/output","hotzoneanalysis","src/resources/point-hotzone.csv","src/resources/zone-hotzone.csv")
     //val args = Array("test/output","hotcellanalysis","src/resources/yellow_tripdata_2009-01_point.csv")
-    //val args = Array("test/output","hotcellanalysis","src/resources/yellow_tripdata_2009-01_point.csv")
+    val args = Array("test/output","hotcellanalysis","src/resources/yellow_tripdata_2009-01_point_1000.csv")
 
     while (paramOffset <= args.length) {
       if (paramOffset == args.length || args(paramOffset).toLowerCase.contains("analysis")) {

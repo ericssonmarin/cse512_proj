@@ -5,6 +5,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.functions._
 import scala.collection._
+import util.control.Breaks._
 
 object HotcellAnalysis {
 
@@ -45,26 +46,15 @@ object HotcellAnalysis {
 
     println("Creating the full list of cells")
 
-    val cells_full = pickupInfo.collect() //grabing all existing cells
+    //val cells_full = pickupInfo.collect() //grabing all existing cells
 
     println("Creating the distinct list of cells")
 
-    val cells_1 = cells_full.distinct //grabing all existing cells
-
-    println("Number of Cells" + cells_1.length.toString)
-
-    println("Creating the second distinct list of cells")
-
-    val cells_2 = cells_1.clone() //making a copy of the distinct cells
-
-    var point_1 = new Array[Int](2)
-    var point_2 = new Array[Int](2)
     var feature: Long = 0
     var accumulatedFeature: Long = 0
     var accumulatedWeights: Long = 0
     var x_bar: Double = 0.0
     var x_square: Double = 0.0
-    var feature_sum_values: Double = 0.0
     var s: Double = 0.0
     var g_numerador: Double = 0.0
     var g_denominator: Double = 0.0
@@ -72,18 +62,19 @@ object HotcellAnalysis {
     var features = scala.collection.mutable.Map[(String, String, String), Long]()
     var lstData : List[(Int,Int,Int,Double)] = List()
     var lstDataFinal : List[(Int,Int,Int)] = List()
+    var neighbor: Integer = 0
 
     println("Calculating the features")
 
-    var i: Integer = 0
+    //var i: Integer = 0
 
     // Calculating here the global metrics "x_bar" and "s"
 
-    for (cell <- cells_full) {
+    for (cell <- pickupInfo.collect()) {
 
-      i += 1
+      //i += 1
 
-      println("iteration: " + i.toString + " out of " + cells_full.length.toString)
+      //println("iteration: " + i.toString + " out of " + cells_full.length.toString)
 
       if (features.contains((cell.get(0).toString, cell.get(1).toString, cell.get(2).toString))) {
         features((cell.get(0).toString, cell.get(1).toString, cell.get(2).toString)) += 1
@@ -95,7 +86,7 @@ object HotcellAnalysis {
 
     //println(features.values)
 
-    x_bar = features.values.sum / numCells
+    x_bar = pickupInfo.count() / numCells
 
     features.keys.foreach{
       a => x_square += math.pow(features(a),2)
@@ -107,13 +98,7 @@ object HotcellAnalysis {
 
     println("Iterating over the cells")
 
-    i = 0
-
-    for (cell_1 <- cells_1) {
-
-      i += 1
-
-      println("iteration: " + i.toString + " out of " + cells_1.length.toString)
+    for (cell_1 <- features.keys.toList) {
 
       accumulatedFeature = 0
       accumulatedWeights = 0
@@ -121,46 +106,37 @@ object HotcellAnalysis {
       g_denominator = 0
       getis_ord = 0
 
-      for (cell_2 <- cells_2) {
+      neighbor = 0
+
+      breakable{
+      for (cell_2 <- features.keys.toList) {
 
         // The next four test conditions verify if the cell is a neighbor of the analyzed cell
 
-        //if (cell_1.toString != cell_2.toString) { no need this, since the exactly same cell should be included in the calculations
+        if (cell_1._3.toInt == (cell_2._3.toInt - 1) || cell_1._3.toInt == cell_2._3.toInt || cell_1._3.toInt == (cell_2._3.toInt + 1)) {
 
-          if (cell_1.get(2).toString.toInt == (cell_2.get(2).toString.toInt - 1) || cell_1.get(2).toString.toInt == cell_2.get(2).toString.toInt || cell_1.get(2).toString.toInt == (cell_2.get(2).toString.toInt + 1)) {
+          if (cell_1._1.toInt == (cell_2._1.toInt - 1) || cell_1._1.toInt == cell_2._1.toInt || cell_1._1.toInt == (cell_2._1.toInt + 1)) {
 
-            if (cell_1.get(0).toString.toInt == (cell_2.get(0).toString.toInt - 1) || cell_1.get(0).toString.toInt == cell_2.get(0).toString.toInt || cell_1.get(0).toString.toInt == (cell_2.get(0).toString.toInt + 1)) {
+            if (cell_1._2.toInt == (cell_2._2.toInt - 1) || cell_1._2.toInt == cell_2._2.toInt || cell_1._2.toInt == (cell_2._2.toInt + 1)) {
 
-              if (cell_1.get(1).toString.toInt == (cell_2.get(1).toString.toInt - 1) || cell_1.get(1).toString.toInt == cell_2.get(1).toString.toInt || cell_1.get(1).toString.toInt == (cell_2.get(1).toString.toInt + 1)) {
+              feature = features((cell_2._1, cell_2._2, cell_2._3))
 
-                feature = features((cell_2.get(0).toString, cell_2.get(1).toString, cell_2.get(2).toString))
+              accumulatedFeature += feature
+              accumulatedWeights += 1
 
-                accumulatedFeature += feature
-                accumulatedWeights += 1
+              neighbor += 1
 
-              //} else {
-
-              //  println("longitude fails!")
-
+              if (neighbor == 26) {
+                break
               }
-
-            //} else {
-
-            //  println("latitude fails!")
 
             }
 
-          //} else {
-
-          //  println("date fails!")
-
           }
 
-        //} else {
+        }
 
-        //  println("same cell!")
-
-        //}
+      }
 
       }
 
@@ -172,9 +148,9 @@ object HotcellAnalysis {
 
         // Storing the getis_ord caculated in a data frame
 
-        lstData = lstData:+((cell_1.get(0).toString.toInt,cell_1.get(1).toString.toInt,cell_1.get(2).toString.toInt,getis_ord.toString.toDouble))
+        lstData = lstData:+((cell_1._1.toInt,cell_1._2.toInt,cell_1._3.toInt,getis_ord.toString.toDouble))
 
-    }
+      }
 
     }
 

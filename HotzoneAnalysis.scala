@@ -32,8 +32,8 @@ object HotzoneAnalysis {
     var joinGroupDf = spark.sql("select rectangle, count(point) from joinResult group by rectangle order by rectangle")
     joinGroupDf.show()
 
-    //return joinGroupDf.coalesce(1)
-    return joinGroupDf
+    return joinGroupDf.coalesce(1)
+    //return joinGroupDf
 
   }
 
